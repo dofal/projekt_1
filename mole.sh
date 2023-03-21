@@ -42,12 +42,15 @@ open_random(){
     fi
 }
 mole_rc_init(){
-    # MOLE_RC exist
-    if [ -f "MOLE_RC" ]; then
-        echo "ok"
-    # MOLE_RC doesn't exist
-    else
+    # MOLE_RC doesn't exist - let's create
+    if [ ! -f "MOLE_RC" ]; then
         touch MOLE_RC
+    fi
+}
+mole_rc_check(){
+    # MOLE_RC doesn't exist - let's create
+    if [ ! -f "MOLE_RC" ]; then
+        echo "There is nothing to list in this folder. Nothing was opened or edited."
     fi
 }
 append_log(){
@@ -75,8 +78,15 @@ else
                 mole_help
                 ;;
             list) #todo
-                echo "list"
                 shift
+                if [ -d "$1" ]; then
+                    directory=$1
+                    cd $directory
+                fi
+                mole_rc_check
+                while read p; do
+                    echo "$p"
+                done <MOLE_RC
                 ;;
             secret-log) # todo
                 echo "secret-log"
@@ -109,10 +119,11 @@ else
                     directory=$1
                     cd $directory
                     open_random
+                    mole_rc_init
+                    append_log
                 fi                
         esac
         # loop count +1
         x=$(( $x + 1 ))
     done
 fi
-echo "testing output: date:$date, user:$user"
