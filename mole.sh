@@ -27,10 +27,31 @@ mole_help (){
     echo "#2 $ mole [-m] [FILTERS] [DIRECTORY] ==> Pokud DIRECTORY odpovídá existujícímu adresáři, skript z daného adresáře vybere soubor, který má být otevřen.\n"
     echo "#3 $ mole list [FILTERS] [DIRECTORY] ==> Skript zobrazí seznam souborů, které byly v daném adresáři otevřeny (editovány) pomocí skriptu.\n"
 }
+
+# Open_Random - mole with no arguments - open random file in directory
 open_random(){
-    file=($(ls | shuf))
-    nano "$file"
-    
+    # get name of random file in folder - without directory names
+    file=($(ls -p | grep -v / | shuf -n 1))
+    # directory is not empty - $file is not empty - open random file
+    if [ ! -z "$file" ]; then
+        file_name="$file"
+        nano "$file"
+    # directory is empty - $file is empty string - nothing to open
+    else
+        echo "There are no files in this folder. Try mole -h for help."
+    fi
+}
+mole_rc_init(){
+    # MOLE_RC exist
+    if [ -f "MOLE_RC" ]; then
+        echo "ok"
+    # MOLE_RC doesn't exist
+    else
+        touch MOLE_RC
+    fi
+}
+append_log(){
+    echo "$date | $user | $file_name;" >> MOLE_RC
 }
 
 #####
@@ -39,28 +60,58 @@ open_random(){
 
 # User passed 0 arguments
 if [ $# == 0 ]; then
+    # Open random file in current folder
     open_random
-    echo "0 arguments"
+    mole_rc_init
+    append_log
 # User passed at least 1 argument
 else
-    # User passed -H argument - let's provide him help
-    x=0
+    x=1 #loop count
     while [ $x -le $# ]
     do
-        echo "loop $x times"
         case "$1" in
+            # User passed -H argument - let's provide him help
             -h)
                 mole_help
                 ;;
-            list)
+            list) #todo
                 echo "list"
                 shift
                 ;;
-            secret-log)
+            secret-log) # todo
                 echo "secret-log"
                 shift
                 ;;
+            -g)
+                shift
+                group=$1
+                echo "$group"
+                shift
+                if [ -f "$1" ]; then
+                    nano "$1"
+                    file_name="$1"
+                    mole_rc_init
+                    append_log
+                else 
+                    echo "File doesn't exist. Try again or type mole -h for help."
+                fi
+
+                ;;
+            # Check if argument is file 
+            *)
+                if [ -f "$1" ]; then
+                    nano "$1"
+                    file_name="$1"
+                    mole_rc_init
+                    append_log
+                fi
+                if [ -d "$1" ]; then
+                    directory=$1
+                    cd $directory
+                    open_random
+                fi                
         esac
+        # loop count +1
         x=$(( $x + 1 ))
     done
 fi
